@@ -51,7 +51,7 @@ INSERT INTO Pedidos (ReservaID, PratoID, Quantidade, Preco)
 VALUES (1, 4, 25, 349.75);
 ```
 
-### Procedimentos Armazenados
+### Stored Procedures
 
 #### Registrar um novo pedido
 
@@ -77,7 +77,7 @@ Chame o procedimento armazenado `TotalReservasPeriodo` para calcular o total de 
 CALL TotalReservasPeriodo('2024-01-01 00:00:00', '2024-12-31 23:59:59');
 ```
 
-### Cursores
+### Cursor
 
 #### Gerar um relatório que lista todos os pratos e a quantidade pedida de cada um num determinado período
 
