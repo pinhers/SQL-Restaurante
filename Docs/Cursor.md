@@ -45,7 +45,7 @@ END //
 DELIMITER ;
 ```
 
-### Explicação Concisa
+### Explicação
 
 - **Declaração de Variáveis:** São definidas as variáveis `done`, `p_Nome`, e `p_QuantidadeTotal` para armazenar temporariamente os resultados do cursor.
   
