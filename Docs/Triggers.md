@@ -2,6 +2,11 @@
 
 Este projeto utiliza triggers para automatizar atualizações de estoque de ingredientes, validar pedidos, e assegurar integridade dos dados em diversas tabelas.
 
+---
+
+Esses triggers são essenciais para garantir que os dados no banco de dados do restaurante sejam consistentes e que regras de negócio importantes sejam aplicadas automaticamente durante inserções e atualizações nas diversas tabelas do sistema.
+
+---
 ## Triggers Criados
 
 ### 1. AtualizarQuantidadeEmStock
