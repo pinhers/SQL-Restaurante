@@ -1,8 +1,8 @@
 # Restaurante Database Schema
 
 Este projeto define o esquema de uma base de dados para um restaurante, incluindo tabelas para clientes, empregados, ingredientes, pratos, reservas, pedidos e a relação entre pratos e ingredientes. Abaixo está a descrição de cada tabela e seus campos.
-([Tabelas](https://github.com/pinhers/SQL-Restaurante/blob/main/SQL/create-tables.sql))
-## Tabelas e Campos
+
+## Tabelas e Campos ([Tabelas](https://github.com/pinhers/SQL-Restaurante/blob/main/SQL/create-tables.sql))
 
 ### 1. Clientes
 Tabela que armazena informações sobre os clientes do restaurante.
