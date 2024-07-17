@@ -1,7 +1,3 @@
-### Procedimento Armazenado com Cursor
-
-O procedimento `RelatorioPedidosPeriodo` utiliza um cursor para iterar sobre os resultados de uma consulta que calcula a quantidade total de cada prato pedido dentro de um intervalo de datas específico.
-
 ```sql
 DELIMITER //
 
@@ -10,7 +6,6 @@ CREATE PROCEDURE RelatorioPedidosPeriodo(
     IN p_DataFim DATETIME
 )
 BEGIN
-    -- Declarações das variáveis locais
     DECLARE done INT DEFAULT 0;
     DECLARE p_Nome VARCHAR(100);
     DECLARE p_QuantidadeTotal INT;
@@ -32,7 +27,6 @@ BEGIN
 
     -- Loop para ler os resultados do cursor
     read_loop: LOOP
-        -- Fetch para obter os valores atuais do cursor
         FETCH cursor_pedidos INTO p_Nome, p_QuantidadeTotal;
 
         -- Verifica se não há mais linhas para ler
@@ -40,7 +34,7 @@ BEGIN
             LEAVE read_loop;
         END IF;
 
-        -- Saída dos resultados (pode ser modificado conforme necessário)
+        -- Saída dos resultados
         SELECT p_Nome AS Prato, p_QuantidadeTotal AS QuantidadeTotal;
     END LOOP;
 
@@ -51,8 +45,19 @@ END //
 DELIMITER ;
 ```
 
-### Considerações
+### Explicação Concisa
 
-- **Performance:** O uso de cursores pode impactar o desempenho em grandes conjuntos de dados. Considere otimizações alternativas dependendo da complexidade e do volume de dados.
+- **Declaração de Variáveis:** São definidas as variáveis `done`, `p_Nome`, e `p_QuantidadeTotal` para armazenar temporariamente os resultados do cursor.
   
-- **Modificações:** A estrutura do loop e o que é feito com os resultados (`SELECT`, armazenamento em tabela, etc.) podem ser ajustados conforme os requisitos específicos do relatório.
+- **Cursor (`DECLARE cursor_pedidos CURSOR FOR ...`):** Define um cursor que executa uma consulta para calcular a quantidade total de cada prato pedido dentro do intervalo de datas especificado.
+
+- **Handler (`DECLARE CONTINUE HANDLER ...`):** Define um manipulador para lidar com a situação em que o cursor não encontra mais linhas para processar.
+
+- **Abrir o Cursor (`OPEN cursor_pedidos`):** Inicia a execução do cursor, preparando-o para interagir sobre as linhas retornadas pela consulta.
+
+- **Loop (`read_loop: LOOP ... END LOOP`):** Utiliza um loop para iterar sobre as linhas retornadas pelo cursor. Dentro do loop:
+  - `FETCH cursor_pedidos INTO p_Nome, p_QuantidadeTotal`: Obtém os valores atuais do cursor e os armazena nas variáveis locais.
+  - Verifica se não há mais linhas para processar (`IF done THEN LEAVE read_loop;`).
+  - Seleciona (`SELECT`) os resultados desejados, que neste caso são o nome do prato e a quantidade total.
+
+- **Fechar o Cursor (`CLOSE cursor_pedidos`):** Finaliza o cursor para liberar recursos após o término do loop.
