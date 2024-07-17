@@ -1,4 +1,4 @@
-# Banco de Dados do Restaurante ([Triggers](https://github.com/pinhers/SQL-Restaurante/blob/main/SQL/create-Triggers.sql))
+# Restaurante Database ([Triggers](https://github.com/pinhers/SQL-Restaurante/blob/main/SQL/create-Triggers.sql))
 
 Este projeto utiliza triggers para automatizar atualizações de estoque de ingredientes, validar pedidos, e assegurar integridade dos dados em diversas tabelas.
 
