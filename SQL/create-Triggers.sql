@@ -33,7 +33,7 @@ DELIMITER ;
 
 
 DELIMITER //
-
+-- prevenir strings vazias antes de insert e update
 CREATE TRIGGER prevent_empty_strings_pratos_before_insert
 BEFORE INSERT ON Pratos
 FOR EACH ROW
@@ -77,7 +77,7 @@ END //
 DELIMITER ;
 
 DELIMITER //
-
+-- prevenir entrada de dados negativos antes de insert e update
 CREATE TRIGGER prevent_negative_price_before_insert
 BEFORE INSERT ON Pratos
 FOR EACH ROW
@@ -102,7 +102,7 @@ DELIMITER ;
 
 
 DELIMITER //
-
+-- prevenir strings vazias antes de insert e update
 CREATE TRIGGER prevent_empty_strings_ingredientes_before_insert
 BEFORE INSERT ON Ingredientes
 FOR EACH ROW
@@ -126,7 +126,7 @@ END //
 DELIMITER ;
 
 DELIMITER //
-
+-- prevenir strings vazias antes de insert e update
 CREATE TRIGGER prevent_empty_strings_clientes_before_insert
 BEFORE INSERT ON Clientes
 FOR EACH ROW
@@ -166,7 +166,7 @@ END //
 DELIMITER ;
 
 DELIMITER //
-
+-- prevenir strings vazias antes de insert e update
 CREATE TRIGGER prevent_empty_strings_empregados_before_insert
 BEFORE INSERT ON Empregados
 FOR EACH ROW
@@ -198,7 +198,7 @@ END //
 DELIMITER ;
 
 DELIMITER //
-
+-- prevenir strings vazias antes de insert e update
 CREATE TRIGGER prevent_empty_strings_reservas_before_insert
 BEFORE INSERT ON Reservas
 FOR EACH ROW
@@ -222,7 +222,7 @@ END //
 DELIMITER ;
 
 DELIMITER //
-
+-- prevenir strings vazias antes de insert e update
 CREATE TRIGGER prevent_empty_strings_pedidos_before_insert
 BEFORE INSERT ON Pedidos
 FOR EACH ROW
@@ -254,7 +254,7 @@ END //
 DELIMITER ;
 
 DELIMITER //
-
+-- prevenir a entrada de dados NULL ou negativos antes de insert e update
 CREATE TRIGGER prevent_null_or_negative_quantidadeprato_before_insert
 BEFORE INSERT ON PratoIngredientes
 FOR EACH ROW
@@ -278,7 +278,7 @@ END //
 DELIMITER ;
 
 DELIMITER //
-
+-- prevenir a entrada de dados negativos antes de insert e update
 CREATE TRIGGER prevent_negative_stock_before_insert
 BEFORE INSERT ON Ingredientes
 FOR EACH ROW
@@ -300,7 +300,7 @@ END //
 DELIMITER ;
 
 DELIMITER //
-
+-- prevenir a entrada de dados negativos antes de insert e update
 CREATE TRIGGER prevent_negative_salary_before_insert
 BEFORE INSERT ON Empregados
 FOR EACH ROW
