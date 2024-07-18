@@ -64,76 +64,56 @@ DELIMITER ;
 
 - **Fechar o Cursor (`CLOSE cursor_pedidos`):** Finaliza o cursor para liberar recursos após o término do loop.
 
-
-## Procedimento `RelatorioPedidosPeriodo`
-
-O procedimento a seguir é utilizado para gerar um relatório de pedidos de pratos dentro de um período específico.
-
 ```sql
-DELIMITER //
-
-CREATE PROCEDURE RelatorioPedidosPeriodo(
-    IN p_DataInicio DATETIME,
-    IN p_DataFim DATETIME
-)
-BEGIN
-    DECLARE done INT DEFAULT 0;
-    DECLARE p_Nome VARCHAR(100);
-    DECLARE p_QuantidadeTotal INT;
-
-    DECLARE cursor_pedidos CURSOR FOR
-        SELECT P.Nome, SUM(PD.Quantidade) AS TotalQuantidade
-        FROM Pedidos PD
-        JOIN Reservas R ON R.ID = PD.ReservaID
-        JOIN Pratos P ON P.ID = PD.PratoID
-        WHERE R.DataReserva BETWEEN p_DataInicio AND p_DataFim
-        GROUP BY P.Nome;
+-- Cursor para percorrer todos os ingredientes necessários para o prato
+    DECLARE cursor_ingredientes CURSOR FOR
+        SELECT IngredienteID, QuantidadePorPrato
+        FROM PratoIngredientes
+        WHERE PratoID = NEW.PratoID;
 
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
 
-    OPEN cursor_pedidos;
+    OPEN cursor_ingredientes;
 
     read_loop: LOOP
-        FETCH cursor_pedidos INTO p_Nome, p_QuantidadeTotal;
-
+        FETCH cursor_ingredientes INTO IngredienteID, QuantidadeNecessaria;
         IF done THEN
             LEAVE read_loop;
         END IF;
 
-        -- Saída dos resultados
-        SELECT p_Nome AS Prato, p_QuantidadeTotal AS QuantidadeTotal;
+        -- Verificar se há quantidade suficiente de cada ingrediente
+        SELECT QuantidadeEmStock INTO QuantidadeDisponivel
+        FROM Ingredientes
+        WHERE ID = IngredienteID;
+
+        IF QuantidadeDisponivel < QuantidadeNecessaria * NEW.Quantidade THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Quantidade insuficiente em estoque';
+        END IF;
     END LOOP;
 
-    CLOSE cursor_pedidos;
-END //
-
-DELIMITER ;
+    CLOSE cursor_ingredientes;
 ```
+1. **Declaração do Cursor (`DECLARE cursor_ingredientes CURSOR FOR ...`)**:
+   - Um cursor é uma estrutura que permite percorrer linhas de um resultado de consulta, uma a uma.
+   - Neste caso, `cursor_ingredientes` é o nome do cursor que irá armazenar o resultado da consulta `SELECT` que busca os ingredientes (`IngredienteID`) e a quantidade necessária por prato (`QuantidadePorPrato`) da tabela `PratoIngredientes` para um prato específico (`PratoID = NEW.PratoID`).
 
-### Explicação
+2. **Handler (`DECLARE CONTINUE HANDLER FOR NOT FOUND ...`)**:
+   - `DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;` define um manipulador que sinaliza quando não há mais linhas para serem recuperadas pelo cursor (`NOT FOUND` indica que a consulta não retornou mais linhas).
 
-1. **Declaração de Variáveis**:
-   - `done`: Variável que indica se todas as linhas do cursor foram processadas.
-   - `p_Nome`: Variável para armazenar o nome do prato durante a iteração do cursor.
-   - `p_QuantidadeTotal`: Variável para armazenar a quantidade total de cada prato pedido.
+3. **Abertura do Cursor (`OPEN cursor_ingredientes;`)**:
+   - Abre o cursor `cursor_ingredientes`, iniciando a iteração pelos resultados da consulta.
 
-2. **Cursor**:
-   - Define um cursor (`cursor_pedidos`) que executa uma consulta para calcular a quantidade total de cada prato pedido dentro do intervalo de datas especificado (`p_DataInicio` e `p_DataFim`).
-   - A consulta utiliza `JOIN`s para relacionar as tabelas `Pedidos`, `Reservas`, e `Pratos`, e agrupa os resultados pelo nome do prato.
+4. **Loop de Leitura (`read_loop: LOOP ... END LOOP;`)**:
+   - `LOOP` inicia um laço de repetição.
+   - `FETCH cursor_ingredientes INTO IngredienteID, QuantidadeNecessaria;` recupera os valores do cursor para as variáveis `IngredienteID` e `QuantidadeNecessaria`.
+   - `IF done THEN LEAVE read_loop; END IF;` verifica se não há mais linhas a serem lidas (`done` é sinalizado pelo handler) e termina o loop se for o caso.
 
-3. **Handler**:
-   - Define um manipulador (`CONTINUE HANDLER`) para lidar com a situação em que o cursor não encontra mais linhas para processar. Nesse caso, define `done` como `1`.
+5. **Verificação de Quantidade em Estoque (`IF QuantidadeDisponivel < QuantidadeNecessaria * NEW.Quantidade THEN ... END IF;`)**:
+   - Para cada ingrediente recuperado, verifica-se se a quantidade em estoque (`QuantidadeEmStock`) é suficiente para atender à quantidade necessária (`QuantidadeNecessaria`) multiplicada pela quantidade do prato (`NEW.Quantidade`).
 
-4. **Abrir o Cursor**:
-   - Inicia a execução do cursor (`OPEN cursor_pedidos`), preparando-o para iterar sobre as linhas retornadas pela consulta.
+6. **Sinalização de Erro (`SIGNAL SQLSTATE '45000' ...`)**:
+   - Se a quantidade em estoque não for suficiente, o código sinaliza um erro (`SIGNAL`) com o estado SQL `45000` e uma mensagem de erro personalizada (`MESSAGE_TEXT = 'Quantidade insuficiente em estoque'`).
 
-5. **Loop**:
-   - Utiliza um loop (`read_loop`) para iterar sobre as linhas retornadas pelo cursor.
-   - `FETCH cursor_pedidos INTO p_Nome, p_QuantidadeTotal`: Obtém os valores atuais do cursor e os armazena nas variáveis locais `p_Nome` e `p_QuantidadeTotal`.
-   - Verifica se `done` é `1`, indicando que não há mais linhas para processar, e então sai do loop.
-
-6. **Saída dos Resultados**:
-   - Dentro do loop, seleciona os resultados desejados (`SELECT p_Nome AS Prato, p_QuantidadeTotal AS QuantidadeTotal;`), que neste caso são o nome do prato e a quantidade total.
-
-7. **Fechar o Cursor**:
-   - Finaliza o cursor (`CLOSE cursor_pedidos`) para liberar recursos após o término do loop.
+7. **Fechamento do Cursor (`CLOSE cursor_ingredientes;`)**:
+   - Ao final do processamento, o cursor é fechado para liberar os recursos.
