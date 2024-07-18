@@ -1,14 +1,10 @@
 select * from Pratos;
 select * from Ingredientes;
 select * from PratoIngredientes;
-
 select * from Clientes;
 select * from Empregados;
 select * from Pedidos;
 select * from Reservas;
-select * from PratoIngredientes;
-
-delete from Empregados;
 
 -- Listar todos os pratos disponíveis com os respetivos ingredientes
 SELECT P.Nome AS Prato, GROUP_CONCAT(I.Nome) AS Ingredientes
@@ -32,27 +28,19 @@ SELECT * FROM Pratos
 WHERE Categoria = 'Pizza';
 
 
--- Tentar inserir um novo pedido com quantidade maior do que a disponível (supondo que o prato Chicken Alfredo tem ID 4)
--- Supondo que temos apenas 20 unidades de Cream em estoque, e tentamos inserir um pedido de 25 unidades.
-INSERT INTO Pedidos (ReservaID, PratoID, Quantidade, Preco) VALUES (1, 1, 10, 349.75);
+-- Tentar inserir um novo pedido com quantidade maior do que a disponível (supondo que o prato hamburger tem ID 2)
+-- Supondo que temos apenas 47 unidades de alface em estoque, e tentamos inserir um pedido de 47 unidades (cada hamburger tem 1 alface).
+INSERT INTO Pedidos (ReservaID, PratoID, Quantidade) VALUES (1, 2, 48);
 
 
 -- ----stored Procedures
-CALL RegistrarPedido(1, 2, 3, 29.99);
--- n de reserva, qual prato, quantos, preco
+CALL RegistrarReserva(1, '2019-03-15 19:00', 3, 1);
+-- cliente, data, quantos, empregado
 
 CALL AtualizarCliente(1, 'Updated Name', 'updated_email@example.com', '987654321');
-CALL AtualizarCliente(1, 'Afonso', 'afonsoPinheiro@example.com', '987654321');
+CALL AtualizarCliente(2, 'Afonso', 'afonsoPinheiro@example.com', '987654321');
 
 CALL TotalReservasPeriodo('2024-01-01 00:00:00', '2024-12-31 23:59:59');
 
 -- --- cursor
 CALL RelatorioPedidosPeriodo('2024-01-01 00:00:00', '2024-12-31 23:59:59');
-
-
-
-
-
-
-
-
