@@ -177,3 +177,219 @@ BEGIN
 END //
 
 DELIMITER ;
+
+DELIMITER //
+-- prevenir entrada de dados negativos antes de insert e update
+CREATE TRIGGER prevent_negative_price_before_insert
+BEFORE INSERT ON Pratos
+FOR EACH ROW
+BEGIN
+    IF NEW.Preco < 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'O preço do prato não pode ser negativo';
+    END IF;
+END //
+
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER prevent_negative_price_before_update
+BEFORE UPDATE ON Pratos
+FOR EACH ROW
+BEGIN
+    IF NEW.Preco < 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'O preço do prato não pode ser negativo';
+    END IF;
+END //
+
+DELIMITER ;
+
+
+DELIMITER //
+-- prevenir strings vazias antes de insert e update
+CREATE TRIGGER prevent_empty_strings_ingredientes_before_insert
+BEFORE INSERT ON Ingredientes
+FOR EACH ROW
+BEGIN
+    IF NEW.Nome = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Nome do ingrediente não pode ser vazio';
+    END IF;
+END //
+
+CREATE TRIGGER prevent_empty_strings_ingredientes_before_update
+BEFORE UPDATE ON Ingredientes
+FOR EACH ROW
+BEGIN
+    IF NEW.Nome = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Nome do ingrediente não pode ser vazio';
+    END IF;
+END //
+
+DELIMITER ;
+
+DELIMITER //
+-- prevenir strings vazias antes de insert e update
+CREATE TRIGGER prevent_empty_strings_clientes_before_insert
+BEFORE INSERT ON Clientes
+FOR EACH ROW
+BEGIN
+    IF NEW.Nome = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Nome do cliente não pode ser vazio';
+    END IF;
+    IF NEW.Email = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Email do cliente não pode ser vazio';
+    END IF;
+    IF NEW.Telefone = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Telefone do cliente não pode ser vazio';
+    END IF;
+END //
+
+CREATE TRIGGER prevent_empty_strings_clientes_before_update
+BEFORE UPDATE ON Clientes
+FOR EACH ROW
+BEGIN
+    IF NEW.Nome = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Nome do cliente não pode ser vazio';
+    END IF;
+    IF NEW.Email = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Email do cliente não pode ser vazio';
+    END IF;
+    IF NEW.Telefone = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Telefone do cliente não pode ser vazio';
+    END IF;
+END //
+
+DELIMITER ;
+
+DELIMITER //
+-- prevenir strings vazias antes de insert e update
+CREATE TRIGGER prevent_empty_strings_reservas_before_insert
+BEFORE INSERT ON Reservas
+FOR EACH ROW
+BEGIN
+    IF NEW.DataReserva = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Data da reserva não pode ser vazia';
+    END IF;
+END //
+
+CREATE TRIGGER prevent_empty_strings_reservas_before_update
+BEFORE UPDATE ON Reservas
+FOR EACH ROW
+BEGIN
+    IF NEW.DataReserva = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Data da reserva não pode ser vazia';
+    END IF;
+END //
+
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER prevent_empty_strings_pedidos_before_insert
+BEFORE INSERT ON Pedidos
+FOR EACH ROW
+BEGIN
+    IF NEW.Quantidade IS NULL OR NEW.Quantidade <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Quantidade do pedido deve ser maior que zero';
+    END IF;
+    IF NEW.Preco IS NULL OR NEW.Preco <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Preço do pedido deve ser maior que zero';
+    END IF;
+END //
+
+CREATE TRIGGER prevent_empty_strings_pedidos_before_update
+BEFORE UPDATE ON Pedidos
+FOR EACH ROW
+BEGIN
+    IF NEW.Quantidade IS NULL OR NEW.Quantidade <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Quantidade do pedido deve ser maior que zero';
+    END IF;
+    IF NEW.Preco IS NULL OR NEW.Preco <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Preço do pedido deve ser maior que zero';
+    END IF;
+END //
+
+DELIMITER ;
+
+DELIMITER //
+-- prevenir a entrada de dados NULL ou negativos antes de insert e update
+CREATE TRIGGER prevent_null_or_negative_quantidadeprato_before_insert
+BEFORE INSERT ON PratoIngredientes
+FOR EACH ROW
+BEGIN
+    IF NEW.QuantidadePorPrato IS NULL OR NEW.QuantidadePorPrato <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'QuantidadePorPrato deve ser maior que zero';
+    END IF;
+END //
+
+CREATE TRIGGER prevent_null_or_negative_quantidadeprato_before_update
+BEFORE UPDATE ON PratoIngredientes
+FOR EACH ROW
+BEGIN
+    IF NEW.QuantidadePorPrato IS NULL OR NEW.QuantidadePorPrato <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'QuantidadePorPrato deve ser maior que zero';
+    END IF;
+END //
+
+DELIMITER ;
+
+DELIMITER //
+-- prevenir a entrada de dados negativos antes de insert e update
+CREATE TRIGGER prevent_negative_stock_before_insert
+BEFORE INSERT ON Ingredientes
+FOR EACH ROW
+BEGIN
+    IF NEW.QuantidadeEmStock < 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A quantidade em estoque não pode ser negativa';
+    END IF;
+END //
+
+CREATE TRIGGER prevent_negative_stock_before_update
+BEFORE UPDATE ON Ingredientes
+FOR EACH ROW
+BEGIN
+    IF NEW.QuantidadeEmStock < 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A quantidade em estoque não pode ser negativa';
+    END IF;
+END //
+
+DELIMITER ;
+
+DELIMITER //
+-- prevenir a entrada de dados negativos antes de insert e update
+CREATE TRIGGER prevent_negative_salary_before_insert
+BEFORE INSERT ON Empregados
+FOR EACH ROW
+BEGIN
+    IF NEW.Salario < 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'O salário não pode ser negativo';
+    END IF;
+END //
+
+CREATE TRIGGER prevent_negative_salary_before_update
+BEFORE UPDATE ON Empregados
+FOR EACH ROW
+BEGIN
+    IF NEW.Salario < 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'O salário não pode ser negativo';
+    END IF;
+END //
+DELIMITER ;
