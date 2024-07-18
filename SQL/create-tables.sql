@@ -65,20 +65,22 @@ CREATE TABLE `Pedidos` (
   `ReservaID` int NOT NULL,
   `PratoID` int NOT NULL,
   `Quantidade` int NOT NULL,
-  `Preco` decimal(10,2) NOT NULL,
+  `Preco` decimal(10,2) DEFAULT NULL,
   PRIMARY KEY (`ID`),
   UNIQUE KEY `ID_UNIQUE` (`ID`),
-  UNIQUE KEY `ReservaID_UNIQUE` (`ReservaID`),
   KEY `PratoID` (`PratoID`),
+  KEY `Pedidos_ibfk_1` (`ReservaID`),
   CONSTRAINT `Pedidos_ibfk_1` FOREIGN KEY (`ReservaID`) REFERENCES `Reservas` (`ID`),
   CONSTRAINT `Pedidos_ibfk_2` FOREIGN KEY (`PratoID`) REFERENCES `Pratos` (`ID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 
 CREATE TABLE `PratoIngredientes` (
-  `PratoID` int unsigned NOT NULL,
-  `IngredienteID` int unsigned NOT NULL,
+  `PratoID` int NOT NULL,
+  `IngredienteID` int NOT NULL,
   `QuantidadePorPrato` int NOT NULL,
   PRIMARY KEY (`PratoID`,`IngredienteID`),
-  UNIQUE KEY `PratoID_UNIQUE` (`PratoID`),
-  UNIQUE KEY `IngredienteID_UNIQUE` (`IngredienteID`)
+  KEY `IngredienteID` (`IngredienteID`),
+  CONSTRAINT `PratoIngredientes_ibfk_1` FOREIGN KEY (`PratoID`) REFERENCES `Pratos` (`ID`),
+  CONSTRAINT `PratoIngredientes_ibfk_2` FOREIGN KEY (`IngredienteID`) REFERENCES `Ingredientes` (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
