@@ -1,5 +1,10 @@
--- Triggers -------------------------------------------------------------------------------------------------------------------------------------------------
--- Atualizar a quantidade em stock de um ingrediente após um pedido
+## Triggers para Atualização e Validação
+
+### 1. Atualizar a Quantidade em Stock de um Ingrediente Após um Pedido
+
+**Objetivo:** Atualiza a quantidade em estoque de um ingrediente após a inserção de um pedido.
+
+```sql
 DELIMITER //
 
 CREATE TRIGGER AtualizarQuantidadeEmStock
@@ -34,8 +39,13 @@ BEGIN
 END //
 
 DELIMITER ;
+```
 
+### 2. Impedir Pedido sem Estoque
 
+**Objetivo:** Impede a inserção de um pedido se não houver ingredientes suficientes em estoque.
+
+```sql
 DELIMITER //
 
 CREATE TRIGGER ImpedirPedidoSemEstoque
@@ -47,7 +57,6 @@ BEGIN
     DECLARE QuantidadeNecessaria INT;
     DECLARE done INT DEFAULT 0;
 
-    -- Cursor para percorrer todos os ingredientes necessários para o prato
     DECLARE cursor_ingredientes CURSOR FOR
         SELECT IngredienteID, QuantidadePorPrato
         FROM PratoIngredientes
@@ -63,7 +72,6 @@ BEGIN
             LEAVE read_loop;
         END IF;
 
-        -- Verificar se há quantidade suficiente de cada ingrediente
         SELECT QuantidadeEmStock INTO QuantidadeDisponivel
         FROM Ingredientes
         WHERE ID = IngredienteID;
@@ -76,7 +84,6 @@ BEGIN
 
     CLOSE cursor_ingredientes;
 
-    -- Verificar se o estoque final será negativo após a inserção do pedido
     IF EXISTS (
         SELECT 1
         FROM PratoIngredientes PI
@@ -89,8 +96,13 @@ BEGIN
 END //
 
 DELIMITER ;
+```
 
+### 3. Prevenir Strings Vazias na Tabela Pratos
 
+**Objetivo:** Impede a inserção ou atualização de pratos com campos obrigatórios vazios.
+
+```sql
 DELIMITER //
 
 CREATE TRIGGER prevent_empty_strings_pratos_before_insert
@@ -111,8 +123,6 @@ BEGIN
     END IF;
 END //
 
-DELIMITER //
-
 CREATE TRIGGER prevent_empty_strings_pratos_before_update
 BEFORE UPDATE ON Pratos
 FOR EACH ROW
@@ -132,9 +142,15 @@ BEGIN
 END //
 
 DELIMITER ;
+```
 
--- Verificação para evitar campos de strings vazias na tabela Empregados
+### 4. Prevenir Strings Vazias na Tabela Empregados
+
+**Objetivo:** Impede a inserção ou atualização de empregados com campos obrigatórios vazios.
+
+```sql
 DELIMITER //
+
 CREATE TRIGGER prevent_empty_strings_empregados_before_insert
 BEFORE INSERT ON Empregados
 FOR EACH ROW
@@ -164,7 +180,13 @@ BEGIN
 END //
 
 DELIMITER ;
+```
 
+### 5. Atualizar Preço Total de um Pedido
+
+**Objetivo:** Atualiza o preço total de um pedido antes da inserção com base no preço unitário do prato e na quantidade pedida.
+
+```sql
 DELIMITER //
 
 CREATE TRIGGER AtualizarPrecoTotal
@@ -177,9 +199,15 @@ BEGIN
 END //
 
 DELIMITER ;
+```
 
+### 6. Prevenir Preços Negativos na Tabela Pratos
+
+**Objetivo:** Impede a inserção ou atualização de pratos com preço negativo.
+
+```sql
 DELIMITER //
--- prevenir entrada de dados negativos antes de insert e update
+
 CREATE TRIGGER prevent_negative_price_before_insert
 BEFORE INSERT ON Pratos
 FOR EACH ROW
@@ -190,9 +218,6 @@ BEGIN
     END IF;
 END //
 
-DELIMITER ;
-
-DELIMITER //
 CREATE TRIGGER prevent_negative_price_before_update
 BEFORE UPDATE ON Pratos
 FOR EACH ROW
@@ -204,10 +229,15 @@ BEGIN
 END //
 
 DELIMITER ;
+```
 
+### 7. Prevenir Strings Vazias na Tabela Ingredientes
 
+**Objetivo:** Impede a inserção ou atualização de ingredientes com campos obrigatórios vazios.
+
+```sql
 DELIMITER //
--- prevenir strings vazias antes de insert e update
+
 CREATE TRIGGER prevent_empty_strings_ingredientes_before_insert
 BEFORE INSERT ON Ingredientes
 FOR EACH ROW
@@ -229,9 +259,15 @@ BEGIN
 END //
 
 DELIMITER ;
+```
 
+### 8. Prevenir Strings Vazias na Tabela Clientes
+
+**Objetivo:** Impede a inserção ou atualização de clientes com campos obrigatórios vazios.
+
+```sql
 DELIMITER //
--- prevenir strings vazias antes de insert e update
+
 CREATE TRIGGER prevent_empty_strings_clientes_before_insert
 BEFORE INSERT ON Clientes
 FOR EACH ROW
@@ -269,15 +305,23 @@ BEGIN
 END //
 
 DELIMITER ;
+```
 
+### 9. Prevenir Strings Vazias na Tabela Reservas
+
+**Objetivo:** Impede a inserção ou atualização de reservas com campos obrigatórios vazios.
+
+```sql
 DELIMITER //
--- prevenir strings vazias antes de insert e update
+
 CREATE TRIGGER prevent_empty_strings_reservas_before_insert
 BEFORE INSERT ON Reservas
 FOR EACH ROW
 BEGIN
     IF NEW.DataReserva = '' THEN
-        SIGNAL SQLSTATE '45000'
+        SIGNAL SQL
+
+STATE '45000'
         SET MESSAGE_TEXT = 'Data da reserva não pode ser vazia';
     END IF;
 END //
@@ -293,8 +337,15 @@ BEGIN
 END //
 
 DELIMITER ;
+```
 
+### 10. Prevenir Quantidades ou Preços Nulos ou Negativos na Tabela Pedidos
+
+**Objetivo:** Impede a inserção ou atualização de pedidos com quantidades ou preços nulos ou negativos.
+
+```sql
 DELIMITER //
+
 CREATE TRIGGER prevent_empty_strings_pedidos_before_insert
 BEFORE INSERT ON Pedidos
 FOR EACH ROW
@@ -324,9 +375,15 @@ BEGIN
 END //
 
 DELIMITER ;
+```
 
+### 11. Prevenir Quantidades nulas ou negativas na Tabela PratoIngredientes
+
+**Objetivo:** Impede a inserção ou atualização de quantidades nulas ou negativas na tabela `PratoIngredientes`.
+
+```sql
 DELIMITER //
--- prevenir a entrada de dados NULL ou negativos antes de insert e update
+
 CREATE TRIGGER prevent_null_or_negative_quantidadeprato_before_insert
 BEFORE INSERT ON PratoIngredientes
 FOR EACH ROW
@@ -348,9 +405,15 @@ BEGIN
 END //
 
 DELIMITER ;
+```
 
+### 12. Prevenir Estoque Negativo na Tabela Ingredientes
+
+**Objetivo:** Impede a inserção ou atualização de ingredientes com estoque negativo.
+
+```sql
 DELIMITER //
--- prevenir a entrada de dados negativos antes de insert e update
+
 CREATE TRIGGER prevent_negative_stock_before_insert
 BEFORE INSERT ON Ingredientes
 FOR EACH ROW
@@ -370,9 +433,15 @@ BEGIN
 END //
 
 DELIMITER ;
+```
 
+### 13. Prevenir Salários Negativos na Tabela Empregados
+
+**Objetivo:** Impede a inserção ou atualização de empregados com salários negativos.
+
+```sql
 DELIMITER //
--- prevenir a entrada de dados negativos antes de insert e update
+
 CREATE TRIGGER prevent_negative_salary_before_insert
 BEFORE INSERT ON Empregados
 FOR EACH ROW
@@ -393,3 +462,4 @@ BEGIN
     END IF;
 END //
 DELIMITER ;
+```
