@@ -7,51 +7,113 @@ Este projeto utiliza triggers para automatizar atualizações de estoque de ingr
 Esses triggers são essenciais para garantir que os dados no banco de dados do restaurante sejam consistentes e que regras de negócio importantes sejam aplicadas automaticamente durante inserções e atualizações nas diversas tabelas do sistema.
 
 ---
-## Triggers Criados
+## Triggers para Atualização e Validação
 
-### 1. AtualizarQuantidadeEmStock
+### 1. Atualizar a Quantidade em Stock de um Ingrediente Após um Pedido
 
 **Objetivo:** Atualiza a quantidade em estoque de um ingrediente após a inserção de um pedido.
 
 ```sql
+DELIMITER //
+
 CREATE TRIGGER AtualizarQuantidadeEmStock
 AFTER INSERT ON Pedidos
 FOR EACH ROW
 BEGIN
-    UPDATE Ingredientes I
-    JOIN PratoIngredientes PI ON I.ID = PI.IngredienteID
-    SET I.QuantidadeEmStock = I.QuantidadeEmStock - (PI.QuantidadePorPrato * NEW.Quantidade)
-    WHERE PI.PratoID = NEW.PratoID;
-END;
+    DECLARE done INT DEFAULT 0;
+    DECLARE IngredienteID INT;
+    DECLARE QuantidadePorPrato INT;
+    
+    DECLARE cur CURSOR FOR 
+        SELECT PI.IngredienteID, PI.QuantidadePorPrato
+        FROM PratoIngredientes PI
+        WHERE PI.PratoID = NEW.PratoID;
+        
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+    
+    OPEN cur;
+    
+    read_loop: LOOP
+        FETCH cur INTO IngredienteID, QuantidadePorPrato;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+        
+        UPDATE Ingredientes
+        SET QuantidadeEmStock = QuantidadeEmStock - (QuantidadePorPrato * NEW.Quantidade)
+        WHERE ID = IngredienteID;
+    END LOOP;
+    
+    CLOSE cur;
+END //
+
+DELIMITER ;
 ```
 
-### 2. ImpedirPedidoSemEstoque
+### 2. Impedir Pedido sem Estoque
 
 **Objetivo:** Impede a inserção de um pedido se não houver ingredientes suficientes em estoque.
 
 ```sql
+DELIMITER //
+
 CREATE TRIGGER ImpedirPedidoSemEstoque
 BEFORE INSERT ON Pedidos
 FOR EACH ROW
 BEGIN
     DECLARE QuantidadeDisponivel INT;
-    SELECT SUM(PI.QuantidadePorPrato * NEW.Quantidade) INTO QuantidadeDisponivel
-    FROM PratoIngredientes PI
-    WHERE PI.PratoID = NEW.PratoID;
+    DECLARE IngredienteID INT;
+    DECLARE QuantidadeNecessaria INT;
+    DECLARE done INT DEFAULT 0;
 
-    IF QuantidadeDisponivel IS NULL OR QuantidadeDisponivel > (SELECT QuantidadeEmStock FROM Ingredientes WHERE ID = (SELECT IngredienteID FROM PratoIngredientes WHERE PratoID = NEW.PratoID)) THEN
+    DECLARE cursor_ingredientes CURSOR FOR
+        SELECT IngredienteID, QuantidadePorPrato
+        FROM PratoIngredientes
+        WHERE PratoID = NEW.PratoID;
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+    OPEN cursor_ingredientes;
+
+    read_loop: LOOP
+        FETCH cursor_ingredientes INTO IngredienteID, QuantidadeNecessaria;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+
+        SELECT QuantidadeEmStock INTO QuantidadeDisponivel
+        FROM Ingredientes
+        WHERE ID = IngredienteID;
+
+        IF QuantidadeDisponivel < QuantidadeNecessaria * NEW.Quantidade THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Quantidade insuficiente em estoque';
+        END IF;
+    END LOOP;
+
+    CLOSE cursor_ingredientes;
+
+    IF EXISTS (
+        SELECT 1
+        FROM PratoIngredientes PI
+        JOIN Ingredientes I ON PI.IngredienteID = I.ID
+        WHERE PI.PratoID = NEW.PratoID AND I.QuantidadeEmStock - (PI.QuantidadePorPrato * NEW.Quantidade) < 0
+    ) THEN
         SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Quantidade insuficiente em estoque';
+        SET MESSAGE_TEXT = 'Estoque insuficiente para atender ao pedido';
     END IF;
-END;
+END //
+
+DELIMITER ;
 ```
 
-### 3. Validadores de Dados para Tabela Pratos
+### 3. Prevenir Strings Vazias na Tabela Pratos
 
-**Objetivo:** Impede a inserção ou atualização de pratos com campos obrigatórios vazios e preços negativos.
+**Objetivo:** Impede a inserção ou atualização de pratos com campos obrigatórios vazios.
 
-- **Before Insert:**
 ```sql
+DELIMITER //
+
 CREATE TRIGGER prevent_empty_strings_pratos_before_insert
 BEFORE INSERT ON Pratos
 FOR EACH ROW
@@ -68,15 +130,8 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Categoria não pode ser vazia';
     END IF;
-    IF NEW.Preco < 0 THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'O preço do prato não pode ser negativo';
-    END IF;
-END;
-```
+END //
 
-- **Before Update:**
-```sql
 CREATE TRIGGER prevent_empty_strings_pratos_before_update
 BEFORE UPDATE ON Pratos
 FOR EACH ROW
@@ -93,17 +148,105 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Categoria não pode ser vazia';
     END IF;
+END //
+
+DELIMITER ;
+```
+
+### 4. Prevenir Strings Vazias na Tabela Empregados
+
+**Objetivo:** Impede a inserção ou atualização de empregados com campos obrigatórios vazios.
+
+```sql
+DELIMITER //
+
+CREATE TRIGGER prevent_empty_strings_empregados_before_insert
+BEFORE INSERT ON Empregados
+FOR EACH ROW
+BEGIN
+    IF NEW.Nome = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Nome não pode ser vazio';
+    END IF;
+    IF NEW.Posicao = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Posicao não pode ser vazia';
+    END IF;
+END //
+
+CREATE TRIGGER prevent_empty_strings_empregados_before_update
+BEFORE UPDATE ON Empregados
+FOR EACH ROW
+BEGIN
+    IF NEW.Nome = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Nome não pode ser vazio';
+    END IF;
+    IF NEW.Posicao = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Posicao não pode ser vazia';
+    END IF;
+END //
+
+DELIMITER ;
+```
+
+### 5. Atualizar Preço Total de um Pedido
+
+**Objetivo:** Atualiza o preço total de um pedido antes da inserção com base no preço unitário do prato e na quantidade pedida.
+
+```sql
+DELIMITER //
+
+CREATE TRIGGER AtualizarPrecoTotal
+BEFORE INSERT ON Pedidos
+FOR EACH ROW
+BEGIN
+    DECLARE preco_unitario DECIMAL(10, 2);
+    SELECT Preco INTO preco_unitario FROM Pratos WHERE ID = NEW.PratoID;
+    SET NEW.Preco = preco_unitario * NEW.Quantidade;
+END //
+
+DELIMITER ;
+```
+
+### 6. Prevenir Preços Negativos na Tabela Pratos
+
+**Objetivo:** Impede a inserção ou atualização de pratos com preço negativo.
+
+```sql
+DELIMITER //
+
+CREATE TRIGGER prevent_negative_price_before_insert
+BEFORE INSERT ON Pratos
+FOR EACH ROW
+BEGIN
     IF NEW.Preco < 0 THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'O preço do prato não pode ser negativo';
     END IF;
-END;
+END //
+
+CREATE TRIGGER prevent_negative_price_before_update
+BEFORE UPDATE ON Pratos
+FOR EACH ROW
+BEGIN
+    IF NEW.Preco < 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'O preço do prato não pode ser negativo';
+    END IF;
+END //
+
+DELIMITER ;
 ```
 
-### 4. Outros Triggers de Validação
+### 7. Prevenir Strings Vazias na Tabela Ingredientes
 
-- **Ingredientes:** Impede a inserção ou atualização de ingredientes com nome vazio.
+**Objetivo:** Impede a inserção ou atualização de ingredientes com campos obrigatórios vazios.
+
 ```sql
+DELIMITER //
+
 CREATE TRIGGER prevent_empty_strings_ingredientes_before_insert
 BEFORE INSERT ON Ingredientes
 FOR EACH ROW
@@ -112,7 +255,7 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Nome do ingrediente não pode ser vazio';
     END IF;
-END;
+END //
 
 CREATE TRIGGER prevent_empty_strings_ingredientes_before_update
 BEFORE UPDATE ON Ingredientes
@@ -122,11 +265,18 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Nome do ingrediente não pode ser vazio';
     END IF;
-END;
+END //
+
+DELIMITER ;
 ```
 
-- **Clientes:** Impede a inserção ou atualização de clientes com campos obrigatórios vazios.
+### 8. Prevenir Strings Vazias na Tabela Clientes
+
+**Objetivo:** Impede a inserção ou atualização de clientes com campos obrigatórios vazios.
+
 ```sql
+DELIMITER //
+
 CREATE TRIGGER prevent_empty_strings_clientes_before_insert
 BEFORE INSERT ON Clientes
 FOR EACH ROW
@@ -143,7 +293,7 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Telefone do cliente não pode ser vazio';
     END IF;
-END;
+END //
 
 CREATE TRIGGER prevent_empty_strings_clientes_before_update
 BEFORE UPDATE ON Clientes
@@ -161,51 +311,29 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Telefone do cliente não pode ser vazio';
     END IF;
-END;
+END //
+
+DELIMITER ;
 ```
 
-- **Empregados:** Impede a inserção ou atualização de empregados com campos obrigatórios vazios.
-```sql
-CREATE TRIGGER prevent_empty_strings_empregados_before_insert
-BEFORE INSERT ON Empregados
-FOR EACH ROW
-BEGIN
-    IF NEW.Nome = '' THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Nome do empregado não pode ser vazio';
-    END IF;
-    IF NEW.Posicao = '' THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Posição do empregado não pode ser vazia';
-    END IF;
-END;
+### 9. Prevenir Strings Vazias na Tabela Reservas
 
-CREATE TRIGGER prevent_empty_strings_empregados_before_update
-BEFORE UPDATE ON Empregados
-FOR EACH ROW
-BEGIN
-    IF NEW.Nome = '' THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Nome do empregado não pode ser vazio';
-    END IF;
-    IF NEW.Posicao = '' THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Posição do empregado não pode ser vazia';
-    END IF;
-END;
-```
+**Objetivo:** Impede a inserção ou atualização de reservas com campos obrigatórios vazios.
 
-- **Reservas:** Impede a inserção ou atualização de reservas com data vazia.
 ```sql
+DELIMITER //
+
 CREATE TRIGGER prevent_empty_strings_reservas_before_insert
 BEFORE INSERT ON Reservas
 FOR EACH ROW
 BEGIN
     IF NEW.DataReserva = '' THEN
-        SIGNAL SQLSTATE '45000'
+        SIGNAL SQL
+
+STATE '45000'
         SET MESSAGE_TEXT = 'Data da reserva não pode ser vazia';
     END IF;
-END;
+END //
 
 CREATE TRIGGER prevent_empty_strings_reservas_before_update
 BEFORE UPDATE ON Reservas
@@ -215,11 +343,18 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Data da reserva não pode ser vazia';
     END IF;
-END;
+END //
+
+DELIMITER ;
 ```
 
-- **Pedidos:** Impede a inserção ou atualização de pedidos com quantidade ou preço negativos.
+### 10. Prevenir Quantidades ou Preços Nulos ou Negativos na Tabela Pedidos
+
+**Objetivo:** Impede a inserção ou atualização de pedidos com quantidades ou preços nulos ou negativos.
+
 ```sql
+DELIMITER //
+
 CREATE TRIGGER prevent_empty_strings_pedidos_before_insert
 BEFORE INSERT ON Pedidos
 FOR EACH ROW
@@ -232,7 +367,7 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Preço do pedido deve ser maior que zero';
     END IF;
-END;
+END //
 
 CREATE TRIGGER prevent_empty_strings_pedidos_before_update
 BEFORE UPDATE ON Pedidos
@@ -246,22 +381,27 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Preço do pedido deve ser maior que zero';
     END IF;
-END;
+END //
+
+DELIMITER ;
 ```
 
-- **PratoIngredientes:** Impede a inserção ou atualização de registros com quantidade de ingrediente por prato negativa ou nula.
+### 11. Prevenir Quantidades nulas ou negativas na Tabela PratoIngredientes
+
+**Objetivo:** Impede a inserção ou atualização de quantidades nulas ou negativas na tabela `PratoIngredientes`.
+
 ```sql
+DELIMITER //
+
 CREATE TRIGGER prevent_null_or_negative_quantidadeprato_before_insert
 BEFORE INSERT ON PratoIngredientes
 FOR EACH ROW
 BEGIN
-    IF NEW.QuantidadePorPrato IS NULL OR
-
- NEW.QuantidadePorPrato <= 0 THEN
+    IF NEW.QuantidadePorPrato IS NULL OR NEW.QuantidadePorPrato <= 0 THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'QuantidadePorPrato deve ser maior que zero';
     END IF;
-END;
+END //
 
 CREATE TRIGGER prevent_null_or_negative_quantidadeprato_before_update
 BEFORE UPDATE ON PratoIngredientes
@@ -271,34 +411,46 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'QuantidadePorPrato deve ser maior que zero';
     END IF;
-END;
+END //
+
+DELIMITER ;
 ```
 
-- **Ingredientes:** Impede a inserção ou atualização de ingredientes com estoque negativo.
+### 12. Prevenir Estoque Negativo na Tabela Ingredientes
+
+**Objetivo:** Impede a inserção ou atualização de ingredientes com estoque negativo.
+
 ```sql
+DELIMITER //
+
 CREATE TRIGGER prevent_negative_stock_before_insert
 BEFORE INSERT ON Ingredientes
 FOR EACH ROW
 BEGIN
     IF NEW.QuantidadeEmStock < 0 THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'A quantidade em estoque não pode ser negativa';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A quantidade em estoque não pode ser negativa';
     END IF;
-END;
+END //
 
 CREATE TRIGGER prevent_negative_stock_before_update
 BEFORE UPDATE ON Ingredientes
 FOR EACH ROW
 BEGIN
     IF NEW.QuantidadeEmStock < 0 THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'A quantidade em estoque não pode ser negativa';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A quantidade em estoque não pode ser negativa';
     END IF;
-END;
+END //
+
+DELIMITER ;
 ```
 
-- **Empregados:** Impede a inserção ou atualização de empregados com salário negativo.
+### 13. Prevenir Salários Negativos na Tabela Empregados
+
+**Objetivo:** Impede a inserção ou atualização de empregados com salários negativos.
+
 ```sql
+DELIMITER //
+
 CREATE TRIGGER prevent_negative_salary_before_insert
 BEFORE INSERT ON Empregados
 FOR EACH ROW
@@ -307,7 +459,7 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'O salário não pode ser negativo';
     END IF;
-END;
+END //
 
 CREATE TRIGGER prevent_negative_salary_before_update
 BEFORE UPDATE ON Empregados
@@ -317,9 +469,11 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'O salário não pode ser negativo';
     END IF;
-END;
+END //
+DELIMITER ;
 ```
 
+Esses triggers garantem que os dados inseridos no banco de dados sigam as regras de negócio estabelecidas, prevenindo inconsistências e erros comuns.
 ---
 
 Esses triggers são essenciais para garantir que os dados no banco de dados do restaurante sejam consistentes e que regras de negócio importantes sejam aplicadas automaticamente durante inserções e atualizações nas diversas tabelas do sistema.
