@@ -1,6 +1,4 @@
 -- Triggers -------------------------------------------------------------------------------------------------------------------------------------------------
-DELIMITER //
-
 -- Atualizar a quantidade em stock de um ingrediente após um pedido
 DELIMITER //
 
