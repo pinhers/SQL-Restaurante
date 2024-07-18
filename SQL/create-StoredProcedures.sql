@@ -1,8 +1,8 @@
--- Stored Procedures -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Stored Procedures
 
 DELIMITER //
 
--- Registar um novo pedido
+-- Registar um novo Reserva
 CREATE PROCEDURE RegistrarReserva(
     IN p_ClienteID INT,
     IN p_DataReserva DATETIME,
